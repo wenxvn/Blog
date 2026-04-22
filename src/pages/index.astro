@@ -1,0 +1,26 @@
+---
+import DocLayout from '../layouts/DocLayout.astro';
+import { getFirstPost } from '../lib/blog';
+import { render } from 'astro:content';
+
+const firstPost = await getFirstPost();
+
+if (!firstPost) {
+  throw new Error('No blog posts found.');
+}
+
+const { Content } = await render(firstPost);
+---
+<DocLayout
+  pageTitle="wen__xvn的个人博客"
+  pageDescription="个人博客首页"
+  currentId={firstPost.id}
+  showHero={true}
+>
+  <h1>{firstPost.data.title}</h1>
+  <div class="article-meta">
+    {firstPost.data.section} / {firstPost.data.category} · {firstPost.data.pubDate.toLocaleDateString('zh-CN')}
+  </div>
+  <p>{firstPost.data.description}</p>
+  <Content />
+</DocLayout>

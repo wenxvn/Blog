@@ -1,0 +1,89 @@
+---
+import { sidebarConfig } from './sidebarConfig';
+
+interface PostItem {
+  id: string;
+  data: {
+    title: string;
+    section: string;
+    category: string;
+  };
+}
+
+interface Props {
+  posts: PostItem[];
+  currentId?: string;
+}
+
+const { posts, currentId } = Astro.props;
+
+const grouped = Object.entries(sidebarConfig).map(([sectionKey, sectionValue]) => {
+  const categoryEntries = Object.entries(sectionValue.categories)
+    .map(([categoryKey, categoryLabel]) => {
+      const categoryPosts = posts.filter(
+        (post) => post.data.section === sectionKey && post.data.category === categoryKey
+      );
+
+      return {
+        key: categoryKey,
+        label: categoryLabel,
+        posts: categoryPosts,
+        open: categoryPosts.some((post) => post.id === currentId),
+      };
+    })
+    .filter((item) => item.posts.length > 0);
+
+  return {
+    key: sectionKey,
+    label: sectionValue.label,
+    categories: categoryEntries,
+    open: categoryEntries.some((item) => item.open),
+  };
+}).filter((item) => item.categories.length > 0);
+---
+<aside class="sidebar">
+  <div class="sidebar-inner">
+    <h2 class="sidebar-title">文章目录</h2>
+
+    <div class="tree">
+      {grouped.map((section) => (
+        <details open={section.open}>
+          <summary>
+            <div class="tree-summary">
+              <span class="tree-label">{section.label}</span>
+              <span class="tree-arrow">▶</span>
+            </div>
+          </summary>
+
+          <div class="tree-children">
+            {section.categories.map((category) => (
+              <details open={category.open}>
+                <summary>
+                  <div class="tree-summary">
+                    <span>{category.label}</span>
+                    <span class="tree-arrow">▶</span>
+                  </div>
+                </summary>
+
+                <div class="tree-children">
+                  <ul class="post-list">
+                    {category.posts.map((post) => (
+                      <li>
+                        <a
+                          class:list={['post-link', { active: post.id === currentId }]}
+                          href={`/posts/${post.id}/#blog-main`}
+                        >
+                          {post.data.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </details>
+            ))}
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+</aside>

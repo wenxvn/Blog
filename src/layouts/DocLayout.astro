@@ -1,0 +1,34 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import Sidebar from '../components/Sidebar.astro';
+import { getSortedPosts } from '../lib/blog';
+
+interface Props {
+  pageTitle: string;
+  pageDescription?: string;
+  currentId?: string;
+  showHero?: boolean;
+}
+
+const {
+  pageTitle,
+  pageDescription = 'wen__xvn的个人博客',
+  currentId,
+  showHero = false
+} = Astro.props;
+
+const posts = await getSortedPosts();
+---
+<BaseLayout title={pageTitle} description={pageDescription}>
+  {showHero && <Hero />}
+
+  <main id="blog-main" class="docs-shell">
+    <Sidebar posts={posts} currentId={currentId} />
+    <section class="docs-content">
+      <div class="article-panel">
+        <slot />
+      </div>
+    </section>
+  </main>
+</BaseLayout>

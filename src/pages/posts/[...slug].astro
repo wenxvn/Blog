@@ -1,0 +1,29 @@
+---
+import DocLayout from '../../layouts/DocLayout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+<DocLayout
+  pageTitle={`${post.data.title} | wen__xvn的个人博客`}
+  pageDescription={post.data.description}
+  currentId={post.id}
+>
+  <a class="back-home-button" href="/#blog-main">← 返回主界面</a>
+
+  <h1>{post.data.title}</h1>
+  <div class="article-meta">
+    {post.data.section} / {post.data.category} · {post.data.pubDate.toLocaleDateString('zh-CN')}
+  </div>
+  <p>{post.data.description}</p>
+  <Content />
+</DocLayout>
