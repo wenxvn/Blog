@@ -5,8 +5,8 @@ const blog = defineCollection({
   schema: z.object({
     title: z.string(),
     description: z.string(),
-    section: z.enum(['leetcode', 'tianti']),
-    category: z.enum(['simulate', 'search', 'L1', 'L2', 'L3']),
+    section: z.enum(['tianti']),
+    category: z.enum(['L1']),
     order: z.number().default(1),
     pubDate: z.coerce.date(),
   }),
