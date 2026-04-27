@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { MDXRemote, MDXRemoteSerializeResult } from "next-mdx-remote";
 import { serialize } from "next-mdx-remote/serialize";
@@ -125,13 +125,24 @@ function EmptyPanel() {
 function ArticlePanel({ post }: { post: PostMeta }) {
   const [source, setSource] = useState<MDXRemoteSerializeResult | null>(null);
 
-  useMemo(() => {
+  useEffect(() => {
+    let cancelled = false;
+
+    setSource(null);
     serialize(post.content, {
       mdxOptions: {
         remarkPlugins: [remarkGfm],
         rehypePlugins: [rehypeHighlight]
       }
-    }).then(setSource);
+    }).then((compiledSource) => {
+      if (!cancelled) {
+        setSource(compiledSource);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [post.content]);
 
   return (
