@@ -1,11 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
-import { MDXRemote, MDXRemoteSerializeResult } from "next-mdx-remote";
-import { serialize } from "next-mdx-remote/serialize";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
+import { useMemo, useState } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import clsx from "clsx";
 import type { GroupedPosts, PostMeta } from "@/lib/types";
 
@@ -123,28 +119,6 @@ function EmptyPanel() {
 }
 
 function ArticlePanel({ post }: { post: PostMeta }) {
-  const [source, setSource] = useState<MDXRemoteSerializeResult | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setSource(null);
-    serialize(post.content, {
-      mdxOptions: {
-        remarkPlugins: [remarkGfm],
-        rehypePlugins: [rehypeHighlight]
-      }
-    }).then((compiledSource) => {
-      if (!cancelled) {
-        setSource(compiledSource);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [post.content]);
-
   return (
     <article className="mx-auto max-w-4xl">
       <header className="mb-8 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -167,9 +141,147 @@ function ArticlePanel({ post }: { post: PostMeta }) {
         </div>
       </header>
 
-      <div className="prose prose-slate max-w-none dark:prose-invert">
-        {source ? <MDXRemote {...source} /> : <p>加载中...</p>}
-      </div>
+      <SimpleMarkdown content={post.content} />
     </article>
   );
+}
+
+function SimpleMarkdown({ content }: { content: string }) {
+  const nodes = useMemo(() => parseMarkdown(content), [content]);
+  return <div className="prose prose-slate max-w-none dark:prose-invert">{nodes}</div>;
+}
+
+function parseMarkdown(content: string): ReactNode[] {
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  const nodes: ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (!line.trim()) {
+      i += 1;
+      continue;
+    }
+
+    if (line.startsWith("```")) {
+      const lang = line.slice(3).trim();
+      const codeLines: string[] = [];
+      i += 1;
+      while (i < lines.length && !lines[i].startsWith("```")) {
+        codeLines.push(lines[i]);
+        i += 1;
+      }
+      if (i < lines.length) i += 1;
+      nodes.push(
+        <pre key={nodes.length} className="overflow-x-auto rounded-xl bg-slate-950 p-4 text-sm text-slate-100">
+          <code className={lang ? `language-${lang}` : undefined}>{codeLines.join("\n")}</code>
+        </pre>
+      );
+      continue;
+    }
+
+    const heading = /^(#{1,6})\s+(.+)$/.exec(line);
+    if (heading) {
+      const level = heading[1].length;
+      const text = heading[2];
+      const className = "font-bold text-ink dark:text-white";
+      if (level === 1) nodes.push(<h1 key={nodes.length} className={className}>{renderInline(text)}</h1>);
+      else if (level === 2) nodes.push(<h2 key={nodes.length} className={className}>{renderInline(text)}</h2>);
+      else if (level === 3) nodes.push(<h3 key={nodes.length} className={className}>{renderInline(text)}</h3>);
+      else if (level === 4) nodes.push(<h4 key={nodes.length} className={className}>{renderInline(text)}</h4>);
+      else if (level === 5) nodes.push(<h5 key={nodes.length} className={className}>{renderInline(text)}</h5>);
+      else nodes.push(<h6 key={nodes.length} className={className}>{renderInline(text)}</h6>);
+      i += 1;
+      continue;
+    }
+
+    if (/^[-*+]\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*+]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^[-*+]\s+/, ""));
+        i += 1;
+      }
+      nodes.push(
+        <ul key={nodes.length}>
+          {items.map((item, index) => <li key={index}>{renderInline(item)}</li>)}
+        </ul>
+      );
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\d+\.\s+/, ""));
+        i += 1;
+      }
+      nodes.push(
+        <ol key={nodes.length}>
+          {items.map((item, index) => <li key={index}>{renderInline(item)}</li>)}
+        </ol>
+      );
+      continue;
+    }
+
+    if (line.startsWith("> ")) {
+      const quotes: string[] = [];
+      while (i < lines.length && lines[i].startsWith("> ")) {
+        quotes.push(lines[i].slice(2));
+        i += 1;
+      }
+      nodes.push(<blockquote key={nodes.length}>{quotes.map((quote, index) => <p key={index}>{renderInline(quote)}</p>)}</blockquote>);
+      continue;
+    }
+
+    const paragraph: string[] = [line];
+    i += 1;
+    while (
+      i < lines.length &&
+      lines[i].trim() &&
+      !lines[i].startsWith("```") &&
+      !/^(#{1,6})\s+/.test(lines[i]) &&
+      !/^[-*+]\s+/.test(lines[i]) &&
+      !/^\d+\.\s+/.test(lines[i]) &&
+      !lines[i].startsWith("> ")
+    ) {
+      paragraph.push(lines[i]);
+      i += 1;
+    }
+    nodes.push(<p key={nodes.length}>{renderInline(paragraph.join(" "))}</p>);
+  }
+
+  return nodes;
+}
+
+function renderInline(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const regex = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const token = match[0];
+
+    if (token.startsWith("**")) {
+      nodes.push(<strong key={nodes.length}>{token.slice(2, -2)}</strong>);
+    } else if (token.startsWith("`")) {
+      nodes.push(<code key={nodes.length}>{token.slice(1, -1)}</code>);
+    } else {
+      const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token);
+      if (link) {
+        nodes.push(
+          <a key={nodes.length} href={link[2]} target="_blank" rel="noreferrer">
+            {link[1]}
+          </a>
+        );
+      }
+    }
+
+    lastIndex = match.index + token.length;
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
 }
