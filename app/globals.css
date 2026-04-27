@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+.prose pre {
+  @apply rounded-xl border border-slate-200 bg-slate-950 text-slate-100 dark:border-slate-800;
+}
+
+.prose code:not(pre code) {
+  @apply rounded bg-slate-100 px-1 py-0.5 text-sm text-emerald-700 dark:bg-slate-800 dark:text-emerald-300;
+}
+
+.prose a {
+  @apply text-emerald-600 no-underline hover:underline dark:text-emerald-400;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #9ca3af;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
