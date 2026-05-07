@@ -256,20 +256,40 @@ function parseMarkdown(content: string): ReactNode[] {
 
 function renderInline(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
-  const regex = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+
+  const regex = /(!\[[^\]]*\]\([^)]+\)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+
     const token = match[0];
 
-    if (token.startsWith("**")) {
+    if (token.startsWith("![")) {
+      const image = /^!\[([^\]]*)\]\(([^)]+)\)$/.exec(token);
+
+      if (image) {
+        nodes.push(
+          <img
+            key={nodes.length}
+            src={image[2]}
+            alt={image[1] || ""}
+            loading="lazy"
+            className="my-6 max-w-full rounded-xl border border-slate-200 shadow-sm dark:border-slate-700"
+          />
+        );
+      }
+    } else if (token.startsWith("**")) {
       nodes.push(<strong key={nodes.length}>{token.slice(2, -2)}</strong>);
     } else if (token.startsWith("`")) {
       nodes.push(<code key={nodes.length}>{token.slice(1, -1)}</code>);
     } else {
       const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token);
+
       if (link) {
         nodes.push(
           <a key={nodes.length} href={link[2]} target="_blank" rel="noreferrer">
@@ -282,6 +302,9 @@ function renderInline(text: string): ReactNode[] {
     lastIndex = match.index + token.length;
   }
 
-  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
   return nodes;
 }
