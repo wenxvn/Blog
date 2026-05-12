@@ -2,7 +2,7 @@
 title: "牛客周赛 Round 143"
 date: "2026-05-11"
 tags: ["牛客"]
-category: "牛客"
+category: "比赛记录"
 problemUrl: "https://ac.nowcoder.com/acm/contest/134529"
 ---
 
